@@ -11,7 +11,7 @@
   --red-bright: #ef4560;
   --accent: #d1d4dc;
   --sans: var(--font-inter), sans-serif;
-  --mono: var(--font-space-mono), monospace;
+  --mono: var(--font-inter), sans-serif;
 }
 
 * {
@@ -30,7 +30,7 @@ body {
   height: 100%;
 }
 
-/* numeric / data readouts use Space Mono for tabular alignment */
+/* numeric / data readouts: Inter with tabular figures for column alignment */
 .ticker .px,
 .ladder,
 .tape,
