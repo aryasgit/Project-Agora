@@ -28,3 +28,7 @@ npm-debug.log*
 # Obsidian workspace (keep notes, ignore local UI state)
 vault/.obsidian/workspace*.json
 vault/.obsidian/cache
+
+# Console (local dev artifacts)
+web/console/.next/
+web/console/node_modules/

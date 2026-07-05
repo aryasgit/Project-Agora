@@ -3,20 +3,19 @@
 **Last updated:** 2026-07-05
 
 ## Current milestone
-**Milestone 2 — Financial Instruments** (🟡 in progress)
-See [[Milestone-02-Financial-Instruments]].
+**Build phase complete — Milestones 1–9 built.** Remaining: your Vercel import (deploy) + study/viva pass over the vault.
 
 ## Done so far
 - Repo scaffolded, git initialised, remote → `github.com/aryasgit/Project-Agora`.
-- Vault structure created (index, concepts, decisions, guides, glossary, milestones, references).
-- Stack decision **accepted** → [[ADR-0001-stack]] (FastAPI + Next.js → Vercel).
-- **Milestone 1 complete** (4/5, passed). Market-order/impact mechanics locked in → [[Milestone-01-Exchange-Fundamentals]].
+- Full vault (index, concepts, decisions, guides, glossary, milestones, references).
+- **Engine (Modules 2–8)** in `engine/agora/`: instrument, orders, order book, matching engine (price-time priority, partial fills, cancel/modify, stops), traders, analytics, simulation — **21 pytest tests passing**. See [[Engine-Architecture]].
+- **Console (Module 9)** in `web/console/`: live TradingView-style UI, verified in-browser, clean static build. See [[Milestone-09-Console]].
+- Decisions accepted: [[ADR-0001-stack]], ADR-0002 (integer ticks), [[ADR-0003-console-runtime]].
 
 ## Immediately next
-1. Read [[Financial-Instruments]] + glossary ([[Tick-Size]], [[Lot-Size]], [[Contract-Multiplier]]).
-2. Do the small `Instrument` value-object task in [[Milestone-02-Financial-Instruments]].
-3. Run the Milestone 2 viva questions through ChatGPT; note anything shaky in the vault.
-4. On completion → Milestone 3 (Order Types).
+1. **Deploy:** follow [[Deploy-to-Vercel]] (import repo, Root Directory = `web/console`).
+2. **Study:** work through the milestone notes + glossary as your source; run the viva questions in each milestone note through ChatGPT.
+3. Optional extensions (Milestone 10): manual-order panel, live trader-mix editor, multi-asset.
 
 ## Working style
 - Viva/reflection questions live **in the milestone notes**, not in chat (student runs them through ChatGPT separately).
