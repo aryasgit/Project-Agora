@@ -10,7 +10,8 @@
   --red: #e0384f;
   --red-bright: #ef4560;
   --accent: #d1d4dc;
-  --mono: "SF Mono", "JetBrains Mono", "Menlo", "Consolas", monospace;
+  --sans: var(--font-inter), sans-serif;
+  --mono: var(--font-space-mono), monospace;
 }
 
 * {
@@ -23,10 +24,20 @@ html,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
   height: 100%;
+}
+
+/* numeric / data readouts use Space Mono for tabular alignment */
+.ticker .px,
+.ladder,
+.tape,
+.stat .value,
+.spread-row,
+canvas {
+  font-family: var(--mono);
 }
 
 .app {
@@ -252,7 +263,7 @@ button.ctl {
   background: var(--panel-2);
   border: 1px solid var(--hair);
   color: var(--text);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11px;
   letter-spacing: 1px;
   padding: 6px 14px;

@@ -29,6 +29,11 @@ export default function CandleChart({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
 
+    // pull the Space Mono family from the canvas's computed style (next/font
+    // generates a hashed family name, so we can't hardcode "Space Mono")
+    const monoFamily =
+      getComputedStyle(canvas).fontFamily || "monospace";
+
     if (candles.length < 2) return;
 
     const padR = 62,
@@ -55,7 +60,7 @@ export default function CandleChart({
     // grid + price axis
     ctx.strokeStyle = "#141418";
     ctx.fillStyle = "#5a5a62";
-    ctx.font = '10px "SF Mono", Menlo, monospace';
+    ctx.font = `10px ${monoFamily}`;
     ctx.textBaseline = "middle";
     const gridN = 5;
     for (let i = 0; i <= gridN; i++) {
