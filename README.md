@@ -2,6 +2,8 @@
 
 > *Agora* (ἀγορά) — the marketplace of an ancient Greek city. This project rebuilds a modern **electronic exchange** from first principles.
 
+**Live console → https://console-ecru-omega.vercel.app**
+
 A simplified electronic exchange and **market-microstructure research platform**. Not a trading bot and not a price predictor — a machine for *understanding how markets actually work*: an order book, a price-time-priority matching engine, a population of simulated traders, and an analytics layer. Prices are not set; they **emerge** from order flow. A TradingView-style console (strict black, red/green) visualises it live.
 
 ## Structure

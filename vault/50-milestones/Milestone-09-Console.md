@@ -1,6 +1,7 @@
 # Milestone 9 — Dashboard / Console
 
-**Status:** 🟢 Built (2026-07-05) · deploy step pending your Vercel import.
+**Status:** 🟢 Built & **deployed** (2026-07-05).
+**Live:** https://console-ecru-omega.vercel.app (Vercel, scope `acredemia`, project `console`).
 
 ## What was built
 A live, TradingView-style exchange console at `web/console` (Next.js 14, TypeScript, custom canvas chart, strict black + red/green). The market runs **client-side** via a faithful TS port of the engine (see [[ADR-0003-console-runtime]]).
