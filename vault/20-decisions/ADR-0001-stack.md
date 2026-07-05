@@ -1,6 +1,6 @@
 # ADR-0001 — Technology Stack & Engine/UI Separation
 
-**Status:** Proposed (awaiting your confirmation)
+**Status:** Accepted (confirmed 2026-07-05)
 **Date:** 2026-07-05
 
 ## Context

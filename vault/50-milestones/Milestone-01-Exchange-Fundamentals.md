@@ -1,6 +1,6 @@
 # Milestone 1 — Exchange Fundamentals
 
-**Status:** 🟡 In progress · **No code this milestone** — this is a mental-model milestone. You cannot design a good order book until you can explain, in your own words, what an exchange *does* and who uses it.
+**Status:** 🟢 Complete (2026-07-05) · **No code this milestone** — this is a mental-model milestone. You cannot design a good order book until you can explain, in your own words, what an exchange *does* and who uses it.
 
 ## Learning objectives
 By the end you can, without notes:
@@ -37,5 +37,13 @@ Read [[Market-Participants]] first (in `10-concepts/`). Then make sure these glo
 - Sketch (on paper) the data you think an order book must store per resting order. Keep the sketch — we'll compare it to your Milestone 4 design.
 
 ---
-### My answers
-> _(write your reflection answers here, then tell the mentor)_
+### Graded outcome (mentor review, 2026-07-05) — 4/5, passed
+Key corrections locked in:
+1. **A market order pays the full opposite side of the spread, cheapest level first — never "the middle."** A market buy fills against resting asks starting at the lowest. Mid-price (50.05) is a display number nobody trades at.
+2. **MM inventory management = skewing, not symmetric inflation.** After selling and going short one unit, the MM *raises its bid* to buy one back and flatten. It shifts quotes toward the side that rebalances inventory.
+3. **Price-time priority** — best price first; ties broken by earliest arrival. (Student derived this unaided.)
+4. **Price moves with no news** because the price *is* the top of the book; any order/cancel/trade that changes what's resting moves it.
+5. **Engine/UI separation benefit:** the engine is independently testable — verify matching correctness without rendering a pixel; also lets the frontend be swapped freely.
+
+### Worked example that sealed market impact
+Book: asks 50.10 ×5, 50.20 ×10. Market **buy 8** → fills **5 @ 50.10 + 3 @ 50.20**, average **50.1375**. You wanted 50.10, paid 50.1375 — that gap *is* [[Market-Impact]]. Scales brutally with size → why institutions slice orders (Milestone 7).

@@ -4,8 +4,8 @@ Ten milestones. We do **not** advance until the current milestone's reflection q
 
 | # | Milestone | Output | Status |
 |---|-----------|--------|--------|
-| 1 | Exchange Fundamentals | Vault notes: participants & how they interact | 🟡 In progress |
-| 2 | Financial Instruments | Notes: instruments, tick/lot sizes | ⚪ Not started |
+| 1 | Exchange Fundamentals | Vault notes: participants & how they interact | 🟢 Done |
+| 2 | Financial Instruments | Notes: instruments, tick/lot sizes; `Instrument` value object | 🟡 In progress |
 | 3 | Order Types | `Order` model + order-type semantics | ⚪ Not started |
 | 4 | Order Book | `OrderBook` data structure, depth, BBO | ⚪ Not started |
 | 5 | Matching Engine | Price-time priority matcher, fills, cancel/modify | ⚪ Not started |
