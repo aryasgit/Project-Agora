@@ -5,14 +5,14 @@ Ten milestones. We do **not** advance until the current milestone's reflection q
 | # | Milestone | Output | Status |
 |---|-----------|--------|--------|
 | 1 | Exchange Fundamentals | Vault notes: participants & how they interact | 🟢 Done |
-| 2 | Financial Instruments | Notes: instruments, tick/lot sizes; `Instrument` value object | 🟡 In progress |
-| 3 | Order Types | `Order` model + order-type semantics | ⚪ Not started |
-| 4 | Order Book | `OrderBook` data structure, depth, BBO | ⚪ Not started |
-| 5 | Matching Engine | Price-time priority matcher, fills, cancel/modify | ⚪ Not started |
-| 6 | Simulated Traders | Agent classes (random, momentum, mean-reversion, MM…) | ⚪ Not started |
-| 7 | Market Dynamics | Emergent price formation, spreads, volatility studies | ⚪ Not started |
-| 8 | Analytics Layer | VWAP, spread, imbalance, depth, liquidity metrics | ⚪ Not started |
-| 9 | Dashboard / Console | TradingView-style UI (black + red/green) | ⚪ Not started |
+| 2 | Financial Instruments | `Instrument` value object, integer-tick design | 🟢 Done |
+| 3 | Order Types | `Order`/`Trade` model, MARKET/LIMIT/STOP/STOP_LIMIT, GTC/IOC/FOK | 🟢 Done |
+| 4 | Order Book | `OrderBook` (SortedDict + deque), depth, BBO | 🟢 Done |
+| 5 | Matching Engine | Price-time priority, full/partial fills, cancel/modify, stops | 🟢 Done |
+| 6 | Simulated Traders | Random, MM, momentum, mean-reversion, aggressive, passive | 🟢 Done |
+| 7 | Market Dynamics | Emergent price series from `Simulation` runner | 🟢 Done |
+| 8 | Analytics Layer | VWAP, spread, imbalance, depth, volatility, frequency | 🟢 Done |
+| 9 | Dashboard / Console | TradingView-style UI (black + red/green) → Vercel | 🟡 In progress |
 | 10 | Advanced Extensions | Multi-asset, latency, risk engine (optional) | ⚪ Not started |
 
 **Legend:** 🟢 done · 🟡 in progress · ⚪ not started

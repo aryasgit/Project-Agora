@@ -1,0 +1,10 @@
+# Engine core
+sortedcontainers>=2.4
+
+# Web API (Milestone 9)
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2
+
+# Dev / tests
+pytest>=8
