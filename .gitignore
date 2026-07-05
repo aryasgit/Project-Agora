@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.vercel/
+npm-debug.log*
+
+# Env / secrets
+.env
+.env.local
+*.local
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Obsidian workspace (keep notes, ignore local UI state)
+vault/.obsidian/workspace*.json
+vault/.obsidian/cache
