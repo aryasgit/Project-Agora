@@ -65,6 +65,10 @@ export class MarketMaker extends Trader {
   onFill(side: Side, qty: number) {
     this.inventory += side === "BUY" ? qty : -qty;
   }
+  cancelLive(eng: MatchingEngine) {
+    for (const oid of this.live) eng.cancel(oid);
+    this.live = [];
+  }
   act(eng: MatchingEngine, _r: Rng): Order[] {
     for (const oid of this.live) eng.cancel(oid);
     this.live = [];

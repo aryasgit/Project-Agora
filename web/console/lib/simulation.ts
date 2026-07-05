@@ -49,6 +49,39 @@ export const DEFAULT_CONFIG: TraderConfig = {
   passive: 1,
 };
 
+// Scenario presets — each is a trader mix that produces a recognisable regime.
+export const PRESETS: { name: string; blurb: string; config: TraderConfig }[] = [
+  {
+    name: "Balanced",
+    blurb: "Healthy two-sided market",
+    config: DEFAULT_CONFIG,
+  },
+  {
+    name: "Calm",
+    blurb: "Deep liquidity, tight spreads",
+    config: { marketMakers: 4, noise: 3, momentum: 0, meanReversion: 2, aggressive: 0, passive: 2 },
+  },
+  {
+    name: "Flash Crash",
+    blurb: "Momentum dominates, MMs thin out",
+    config: { marketMakers: 1, noise: 2, momentum: 5, meanReversion: 0, aggressive: 3, passive: 0 },
+  },
+  {
+    name: "Liquidity Crisis",
+    blurb: "Providers gone, takers remain",
+    config: { marketMakers: 0, noise: 2, momentum: 2, meanReversion: 0, aggressive: 3, passive: 0 },
+  },
+];
+
+export const TRADER_META: { key: keyof TraderConfig; label: string; hint: string }[] = [
+  { key: "marketMakers", label: "Market Makers", hint: "Post two-sided quotes; provide liquidity" },
+  { key: "noise", label: "Noise Traders", hint: "Random uninformed flow" },
+  { key: "momentum", label: "Momentum", hint: "Chase trends; amplify moves" },
+  { key: "meanReversion", label: "Mean Reversion", hint: "Fade extremes; stabilise" },
+  { key: "aggressive", label: "Aggressive Buyers", hint: "Large market buys; cause impact" },
+  { key: "passive", label: "Passive Sellers", hint: "Rest offers above market" },
+];
+
 export class Simulation {
   eng = new MatchingEngine();
   traders: Trader[] = [];
@@ -56,28 +89,88 @@ export class Simulation {
   private rng: () => number;
   private spreads: number[] = [];
   private mids: number[] = [];
+  imbalanceHist: number[] = [];
+  spreadHist: number[] = [];
   candles: Candle[] = [];
   private candleSize = 5; // steps per candle
   tickSize = 0.01;
+  config: TraderConfig;
 
   constructor(public seed = 42, config: TraderConfig = DEFAULT_CONFIG) {
     this.rng = makeRng(seed);
+    this.config = { ...config };
     this.build(config);
     this.eng.onTrade = (t) => this.routeFill(t);
     this.seedBook();
   }
 
+  private makeTrader(kind: keyof TraderConfig, i: number): Trader {
+    switch (kind) {
+      case "marketMakers":
+        return new MarketMaker(`MM-${i + 1}`, 3 + (i % 3), 12 - (i % 3) * 3);
+      case "noise":
+        return new RandomTrader(`NOISE-${i + 1}`);
+      case "momentum":
+        return new MomentumTrader(`MOM-${i + 1}`);
+      case "meanReversion":
+        return new MeanReversionTrader(`MR-${i + 1}`);
+      case "aggressive":
+        return new AggressiveBuyer(`INST-${i + 1}`);
+      case "passive":
+        return new PassiveSeller(`PASS-${i + 1}`);
+    }
+  }
+
   private build(c: TraderConfig) {
-    for (let i = 0; i < c.marketMakers; i++)
-      this.traders.push(new MarketMaker(`MM-${i + 1}`, 3 + i, 12 - i * 3));
-    for (let i = 0; i < c.noise; i++) this.traders.push(new RandomTrader(`NOISE-${i + 1}`));
-    for (let i = 0; i < c.momentum; i++) this.traders.push(new MomentumTrader(`MOM-${i + 1}`));
-    for (let i = 0; i < c.meanReversion; i++)
-      this.traders.push(new MeanReversionTrader(`MR-${i + 1}`));
-    for (let i = 0; i < c.aggressive; i++)
-      this.traders.push(new AggressiveBuyer(`INST-${i + 1}`));
-    for (let i = 0; i < c.passive; i++) this.traders.push(new PassiveSeller(`PASS-${i + 1}`));
+    (Object.keys(c) as (keyof TraderConfig)[]).forEach((kind) => {
+      for (let i = 0; i < c[kind]; i++) this.traders.push(this.makeTrader(kind, i));
+    });
     this.mms = this.traders.filter((t) => t instanceof MarketMaker) as MarketMaker[];
+  }
+
+  /** Live-apply a new trader mix WITHOUT resetting the market — adds/removes
+   * agent instances to match the requested counts. Lets the user watch a
+   * regime change (e.g. adding momentum traders) unfold in real time. */
+  applyConfig(next: TraderConfig) {
+    (Object.keys(next) as (keyof TraderConfig)[]).forEach((kind) => {
+      const prefix = { marketMakers: "MM", noise: "NOISE", momentum: "MOM", meanReversion: "MR", aggressive: "INST", passive: "PASS" }[kind];
+      const current = this.traders.filter((t) => t.id.startsWith(prefix + "-"));
+      const target = next[kind];
+      if (target > current.length) {
+        for (let i = current.length; i < target; i++) this.traders.push(this.makeTrader(kind, i));
+      } else if (target < current.length) {
+        const remove = current.slice(target);
+        for (const t of remove) {
+          if (t instanceof MarketMaker) t.cancelLive(this.eng); // pull their resting quotes
+          const idx = this.traders.indexOf(t);
+          if (idx >= 0) this.traders.splice(idx, 1);
+        }
+      }
+    });
+    this.mms = this.traders.filter((t) => t instanceof MarketMaker) as MarketMaker[];
+    this.config = { ...next };
+  }
+
+  /** Submit a manual order on behalf of the user ("YOU"). Returns a fill
+   * summary so the UI can show realised price + slippage vs the pre-trade mid. */
+  submitManual(side: Side, type: "MARKET" | "LIMIT", qty: number, priceTicks: number | null) {
+    const midBefore = this.eng.mid();
+    const o: Order = {
+      id: this.eng.nextId(),
+      side,
+      type,
+      quantity: qty,
+      price: type === "LIMIT" ? priceTicks : null,
+      tif: "GTC",
+      traderId: "YOU",
+      seq: 0,
+      originalQuantity: qty,
+    };
+    const trades = this.eng.submit(o);
+    const filled = trades.reduce((s, t) => s + t.quantity, 0);
+    const notional = trades.reduce((s, t) => s + t.price * t.quantity, 0);
+    const avg = filled ? notional / filled : null;
+    return { filled, avg, resting: qty - filled, midBefore, side, type };
   }
 
   private routeFill(t: Trade) {
@@ -108,10 +201,40 @@ export class Simulation {
     for (const tr of order) for (const o of tr.act(this.eng, this.rng)) this.eng.submit(o);
 
     const sp = this.eng.spread();
-    if (sp !== null) this.spreads.push(sp);
+    if (sp !== null) {
+      this.spreads.push(sp);
+      this.spreadHist.push(sp);
+      if (this.spreadHist.length > 200) this.spreadHist.shift();
+    }
     const m = this.eng.mid();
     if (m !== null) this.mids.push(m);
+    const imb = this.imbalanceNow();
+    if (imb !== null) {
+      this.imbalanceHist.push(imb);
+      if (this.imbalanceHist.length > 200) this.imbalanceHist.shift();
+    }
     this.updateCandles();
+  }
+
+  private imbalanceNow(): number | null {
+    const bb = this.eng.bids.best(),
+      ba = this.eng.asks.best();
+    if (bb && ba && bb.volume + ba.volume > 0)
+      return (bb.volume - ba.volume) / (bb.volume + ba.volume);
+    return null;
+  }
+
+  /** Depth with a running cumulative-volume column per side (best → worse). */
+  depthCumulative(n = 12) {
+    const d = this.eng.depth(n);
+    const withCum = (rows: [number, number][]) => {
+      let cum = 0;
+      return rows.map(([p, v]) => {
+        cum += v;
+        return { price: p, volume: v, cum };
+      });
+    };
+    return { bids: withCum(d.bids), asks: withCum(d.asks) };
   }
 
   private updateCandles() {

@@ -28,7 +28,16 @@ Panels:
 ## To deploy
 Follow [[Deploy-to-Vercel]] — import repo, set Root Directory to `web/console`, deploy.
 
+## Interactive features (built 2026-07-05)
+- **Order ticket** — send your own MARKET/LIMIT buy/sell into the live book; the receipt shows filled qty, average price, and **slippage vs the pre-trade mid** (market impact, made tangible). Your fills are highlighted in the tape. `Simulation.submitManual()`.
+- **Trader-mix sliders + scenario presets** (Balanced / Calm / Flash Crash / Liquidity Crisis) — mutate the running market *in place* via `Simulation.applyConfig()` (adds/removes agent instances without a reset), so a regime change unfolds live. Verified: Flash Crash preset swings imbalance sharply negative.
+- **Analytics sparklines** — spread & order-imbalance history (`spreadHist`, `imbalanceHist`), imbalance drawn bipolar around zero.
+- **Cumulative-depth column** in the order book; depth bars scale to cumulative volume.
+- **Keyboard shortcuts** — space = run/pause, → = step, r = reseed.
+- **URL-shareable seed** — Reseed writes `?seed=` so a market is reproducible/shareable; the seed is read back on load.
+- **Responsive** — below 1100px the layout stacks into a scrollable column.
+
 ## Stretch (later)
-- Interactive trader-mix editor (add/remove agents live) — the `TraderConfig` plumbing already exists.
-- A "manual order" panel so *you* can send an order into the live book and watch impact.
+- Multi-asset (a book per instrument, a symbol switcher).
 - Swap the custom canvas for TradingView `lightweight-charts` if you want their exact interactions.
+- A latency/queue-position visualiser for the front of each price level.
