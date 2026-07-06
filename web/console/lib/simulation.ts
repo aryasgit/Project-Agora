@@ -95,13 +95,15 @@ export class Simulation {
   private candleSize = 5; // steps per candle
   tickSize = 0.01;
   config: TraderConfig;
+  startMid: number;
 
-  constructor(public seed = 42, config: TraderConfig = DEFAULT_CONFIG) {
+  constructor(public seed = 42, config: TraderConfig = DEFAULT_CONFIG, startMid = 5000) {
     this.rng = makeRng(seed);
     this.config = { ...config };
+    this.startMid = startMid;
     this.build(config);
     this.eng.onTrade = (t) => this.routeFill(t);
-    this.seedBook();
+    this.seedBook(startMid);
   }
 
   private makeTrader(kind: keyof TraderConfig, i: number): Trader {

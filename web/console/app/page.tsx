@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Simulation, Summary, DEFAULT_CONFIG, PRESETS, TraderConfig } from "@/lib/simulation";
+import { Summary, PRESETS, TraderConfig } from "@/lib/simulation";
+import { World, change } from "@/lib/world";
 import type { Trade } from "@/lib/engine";
 import CandleChart from "@/components/CandleChart";
 import Sparkline from "@/components/Sparkline";
@@ -9,6 +10,7 @@ import TraderControls from "@/components/TraderControls";
 
 const TICK = 0.01;
 const fmt = (t: number | null) => (t === null ? "—" : (t * TICK).toFixed(2));
+const pctFmt = (p: number | null) => (p === null ? "—" : `${p >= 0 ? "+" : ""}${(p * 100).toFixed(2)}%`);
 
 const SPEEDS = [
   { label: "1×", steps: 1 },
@@ -24,29 +26,24 @@ function readSeed(): number {
 }
 
 export default function Console() {
-  const simRef = useRef<Simulation>(new Simulation(42, DEFAULT_CONFIG));
+  const worldRef = useRef<World>(new World(42));
   const [, force] = useState(0);
   const [running, setRunning] = useState(true);
   const [speed, setSpeed] = useState(1);
-  const [config, setConfig] = useState<TraderConfig>(DEFAULT_CONFIG);
-  const [preset, setPreset] = useState<string | null>("Balanced");
+  const [selected, setSelected] = useState(0);
   const raf = useRef<number | null>(null);
   const prevPrice = useRef<number | null>(null);
 
-  // hydrate the seed from the URL after mount (keeps SSR deterministic)
   useEffect(() => {
     const seed = readSeed();
     if (seed !== 42) {
-      simRef.current = new Simulation(seed, DEFAULT_CONFIG);
-      setConfig(DEFAULT_CONFIG);
-      setPreset("Balanced");
+      worldRef.current = new World(seed);
       force((x) => x + 1);
     }
   }, []);
 
   const tick = useCallback(() => {
-    const sim = simRef.current;
-    for (let i = 0; i < SPEEDS[speed].steps; i++) sim.step();
+    worldRef.current.step(SPEEDS[speed].steps);
     force((x) => x + 1);
     raf.current = requestAnimationFrame(tick);
   }, [speed]);
@@ -60,7 +57,7 @@ export default function Console() {
 
   const reseed = useCallback(() => {
     const seed = Math.floor(Math.random() * 1e9);
-    simRef.current = new Simulation(seed, config);
+    worldRef.current = new World(seed);
     prevPrice.current = null;
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -68,14 +65,13 @@ export default function Console() {
       window.history.replaceState({}, "", url);
     }
     force((x) => x + 1);
-  }, [config]);
+  }, []);
 
   const stepOnce = useCallback(() => {
-    simRef.current.step();
+    worldRef.current.step(1);
     force((x) => x + 1);
   }, []);
 
-  // keyboard shortcuts: space = run/pause, → = step, r = reseed
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -94,23 +90,26 @@ export default function Console() {
     return () => window.removeEventListener("keydown", onKey);
   }, [reseed, stepOnce]);
 
+  const world = worldRef.current;
+  const market = world.markets[selected];
+  const sim = market.sim;
+
   const applyPreset = (name: string) => {
     const p = PRESETS.find((x) => x.name === name);
     if (!p) return;
-    simRef.current.applyConfig(p.config);
-    setConfig(p.config);
-    setPreset(name);
+    sim.applyConfig(p.config);
+    market.config = p.config;
+    market.preset = name;
     force((x) => x + 1);
   };
 
   const changeConfig = (next: TraderConfig) => {
-    simRef.current.applyConfig(next);
-    setConfig(next);
-    setPreset(null); // custom mix
+    sim.applyConfig(next);
+    market.config = next;
+    market.preset = null;
     force((x) => x + 1);
   };
 
-  const sim = simRef.current;
   const s: Summary = sim.summary();
   const depth = sim.depthCumulative(11);
   const trades = sim.recentTrades(30);
@@ -125,11 +124,7 @@ export default function Console() {
       : 0;
   if (last !== null) prevPrice.current = last;
 
-  const maxCum = Math.max(
-    1,
-    ...depth.bids.map((d) => d.cum),
-    ...depth.asks.map((d) => d.cum)
-  );
+  const maxCum = Math.max(1, ...depth.bids.map((d) => d.cum), ...depth.asks.map((d) => d.cum));
 
   return (
     <div className="app">
@@ -138,7 +133,7 @@ export default function Console() {
           AGORA<span className="greek">ἀγορά · exchange console</span>
         </div>
         <div className="ticker">
-          <span className="sym">AGORA/USD</span>
+          <span className="sym">{market.spec.symbol}/USD</span>
           <span className={`px ${dir > 0 ? "up" : dir < 0 ? "down" : ""}`}>{fmt(last)}</span>
         </div>
         <div className="spacer" />
@@ -155,10 +150,7 @@ export default function Console() {
               </button>
             ))}
           </div>
-          <button
-            className={`ctl ${running ? "pause" : "run"}`}
-            onClick={() => setRunning((r) => !r)}
-          >
+          <button className={`ctl ${running ? "pause" : "run"}`} onClick={() => setRunning((r) => !r)}>
             {running ? "Pause" : "Run"}
           </button>
           <button className="ctl" onClick={reseed}>
@@ -167,15 +159,42 @@ export default function Console() {
         </div>
       </div>
 
+      {/* multi-asset watchlist / symbol switcher */}
+      <div className="watchlist">
+        {world.markets.map((m, i) => {
+          const c = change(m);
+          return (
+            <button
+              key={m.spec.symbol}
+              className={`watch ${i === selected ? "on" : ""}`}
+              onClick={() => {
+                setSelected(i);
+                prevPrice.current = null;
+              }}
+            >
+              <span className="w-sym">{m.spec.symbol}</span>
+              <span className="w-kind">{m.spec.kind}</span>
+              <span className="w-px">{fmt(c.last)}</span>
+              <span className={`w-chg ${c.pct !== null && c.pct < 0 ? "down" : "up"}`}>
+                {pctFmt(c.pct)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="body">
         <div className="grid">
-          {/* price chart */}
           <div className="panel chart-panel">
-            <div className="panel-title">Price · candles (5-step)</div>
+            <div className="panel-title">
+              <span>
+                {market.spec.name} · {market.spec.symbol}
+              </span>
+              <span className="col-key">candles · 5-step</span>
+            </div>
             <CandleChart candles={sim.candles} tickSize={TICK} version={sim.eng.step} />
           </div>
 
-          {/* order book */}
           <div className="panel book-panel">
             <div className="panel-title">
               <span>Order Book · depth</span>
@@ -204,7 +223,6 @@ export default function Console() {
             </div>
           </div>
 
-          {/* trade tape */}
           <div className="panel tape-panel">
             <div className="panel-title">Time &amp; Sales</div>
             <div className="tape">
@@ -223,7 +241,6 @@ export default function Console() {
             </div>
           </div>
 
-          {/* analytics */}
           <div className="panel stats-panel">
             <div className="panel-title">Analytics</div>
             <div className="stats">
@@ -265,10 +282,9 @@ export default function Console() {
           </div>
         </div>
 
-        {/* control rail */}
         <aside className="rail">
           <div className="panel">
-            <div className="panel-title">Order Ticket</div>
+            <div className="panel-title">Order Ticket · {market.spec.symbol}</div>
             <OrderTicket
               refPrice={sim.eng.marketPrice()}
               onSubmit={(side, type, qty, price) => {
@@ -281,8 +297,8 @@ export default function Console() {
           <div className="panel rail-mix">
             <div className="panel-title">Trader Mix · scenarios</div>
             <TraderControls
-              config={config}
-              activePreset={preset}
+              config={market.config}
+              activePreset={market.preset}
               onPreset={applyPreset}
               onChange={changeConfig}
             />

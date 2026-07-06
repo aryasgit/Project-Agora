@@ -13,7 +13,7 @@ Ten milestones. We do **not** advance until the current milestone's reflection q
 | 7 | Market Dynamics | Emergent price series from `Simulation` runner | 🟢 Done |
 | 8 | Analytics Layer | VWAP, spread, imbalance, depth, volatility, frequency | 🟢 Done |
 | 9 | Dashboard / Console | TradingView-style UI (black + red/green), **live on Vercel** | 🟢 Done |
-| 10 | Advanced Extensions | Multi-asset, latency, risk engine (optional) | ⚪ Not started |
+| 10 | Advanced Extensions | **Multi-asset done** (4 instruments + symbol switcher); options/latency/risk open | 🟡 In progress |
 
 **Legend:** 🟢 done · 🟡 in progress · ⚪ not started
 
