@@ -1,21 +1,57 @@
 # Project Agora
 
-> *Agora* (ἀγορά) — the marketplace of an ancient Greek city. This project rebuilds a modern **electronic exchange** from first principles.
+**A first-principles electronic exchange & market-microstructure simulator.**
+Not a trading bot and not a price predictor — a working model of the machinery *inside* an exchange: a limit order book, a price-time-priority matching engine, a population of simulated traders, and an analytics layer. Prices are never set; they **emerge** from order flow.
 
-**Live console → https://console-ecru-omega.vercel.app**
+### ▶ Live console — **https://console-ecru-omega.vercel.app**
 
-A simplified electronic exchange and **market-microstructure research platform**. Not a trading bot and not a price predictor — a machine for *understanding how markets actually work*: an order book, a price-time-priority matching engine, a population of simulated traders, and an analytics layer. Prices are not set; they **emerge** from order flow. A TradingView-style console (strict black, red/green) visualises it live.
+*Strict-black TradingView-style console: live candles, order-book depth, time & sales, analytics, a manual order ticket, and a live trader-mix editor — all running a real matching engine in your browser.*
 
-## Structure
+<!-- HIGH-VALUE TODO: record a ~10s screen capture of the live console (market ticking,
+     order book updating), export as docs/demo.gif, and uncomment:
+![Agora console](docs/demo.gif) -->
+
+---
+
+## Why this exists
+
+Most "quant" student projects predict prices. This one asks a more fundamental question: **where does a price even come from?** The answer — matching engines, order books, liquidity, and the interaction of different traders — is the actual subject of market microstructure, and the thing proprietary trading firms care about. Agora builds that machinery from scratch so the mechanics are understood, not black-boxed.
+
+## What it does
+
+- **Limit order book** with bid/ask sides, price levels, and market depth.
+- **Matching engine** enforcing **price-time priority** — full & partial fills, order cancel, cancel-replace modify, and stop / stop-limit triggers with cascading.
+- **Order types:** market, limit, stop, stop-limit · **time-in-force:** GTC, IOC, FOK.
+- **Simulated traders:** market maker (with inventory skew), momentum, mean-reversion, noise, aggressive institutional, passive — the market self-organises from their interaction.
+- **Analytics:** VWAP, bid-ask spread, order imbalance, realized volatility, market depth, trade frequency.
+- **Multi-asset:** four independent instruments (index, large-cap, small-cap, ETF), each with its own book — a small-cap is genuinely ~15× more volatile than the index.
+- **Interactive console:** send your own orders and see the slippage, edit the trader mix live, trigger scenario presets (Calm / Flash Crash / Liquidity Crisis).
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph engine["agora engine · pure Python · 21 tests"]
+    O[Order / Trade] --> BK[Order Book<br/>SortedDict + deque]
+    BK --> ME[Matching Engine<br/>price-time priority]
+    TR[Traders] --> ME
+    ME --> AN[Analytics<br/>VWAP · spread · imbalance]
+  end
+  subgraph web["web/console · Next.js on Vercel"]
+    TS[TS engine port<br/>runs client-side] --> UI[TradingView-style console]
+  end
+  engine -. tested reference .-> TS
 ```
-engine/agora/   pure-Python simulation engine (no UI dependencies)
-web/            FastAPI API + Next.js console (deploys to Vercel)
-tests/          pytest — engine-first
-vault/          the full knowledge base: concepts, decisions, guides, glossary, milestones
-```
 
-## The vault
-Everything — every concept, decision, term, and milestone — is documented in `vault/`, an Obsidian-compatible knowledge base. Start at [`vault/00-index/Home.md`](vault/00-index/Home.md).
+**Engine / UI separation is deliberate.** The engine is a pure, dependency-free module with its own test suite — it can be verified without rendering a pixel. The deployed console runs a faithful TypeScript **port** of it client-side (so the demo needs no backend and deploys as static files); the Python engine remains the tested source of truth. Rationale: [`vault/20-decisions/`](vault/20-decisions).
+
+## Engineering highlights (the interview-defensible parts)
+
+- **Integer-tick arithmetic.** Prices are stored as integer ticks, never floats — off-grid prices are *rejected*, and price-level equality is exact. Floats keying an order book is a latent bug; this design forecloses it.
+- **Data structures with intent.** `SortedDict` of price → level gives O(log n) level maintenance and O(1) best-of-book; a `deque` per level encodes time priority as FIFO. Complexity is a design choice, not an accident.
+- **Price-time priority, correctly.** Best price first; ties by arrival order. `modify` is cancel-replace and *loses* time priority — matching real exchange semantics.
+- **Instrument-agnostic engine.** Multi-asset required **zero** changes to the matcher — just N engines and a router, exactly as real venues work.
+- **Tested.** 21 `pytest` cases cover market-impact walks, partial fills, IOC/FOK, cancel/modify, and stop cascades.
 
 ## Run it
 
@@ -23,20 +59,28 @@ Everything — every concept, decision, term, and milestone — is documented in
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-pytest                                   # 21 tests, engine-first
-cd engine && python -m agora.simulation  # ~1000 emergent trades + analytics
+pytest                                   # 21 tests
+cd engine && python -m agora.simulation  # ~1000 emergent trades + analytics summary
 ```
 
-**Live console (Next.js):**
+**Console (Next.js):**
 ```bash
-cd web/console
-npm install
-npm run dev        # http://localhost:3737
+cd web/console && npm install && npm run dev   # http://localhost:3737
 ```
-Deploy: import the repo on Vercel with Root Directory `web/console` (see [`vault/30-guides/Deploy-to-Vercel.md`](vault/30-guides/Deploy-to-Vercel.md)).
 
-## Status
-Milestones 1–9 built: full engine (price-time-priority matching, traders, analytics, 21 passing tests) and a live TradingView-style console. Deploy + study pass remaining. See [`vault/00-index/Roadmap.md`](vault/00-index/Roadmap.md).
+## Project structure
 
-## Stack
-Python engine (tested reference) · Next.js console with a client-side TS engine port · Vercel. Rationale in [`vault/20-decisions/ADR-0001-stack.md`](vault/20-decisions/ADR-0001-stack.md) and [`ADR-0003`](vault/20-decisions/ADR-0003-console-runtime.md).
+```
+engine/agora/   pure-Python engine — instrument, orders, book, matching, traders, analytics
+tests/          pytest (engine-first)
+web/console/    Next.js console + client-side TS engine port (deploys to Vercel)
+vault/          full knowledge base: concepts, decisions, glossary, milestones, references
+```
+
+## Documentation / study vault
+
+Every concept, decision, and milestone is written up in [`vault/`](vault) (Obsidian-compatible). Start at [`vault/00-index/Home.md`](vault/00-index/Home.md). The [engine architecture guide](vault/30-guides/Engine-Architecture.md) is the best code-alongside read.
+
+## Built with
+
+Python · `sortedcontainers` · pytest · TypeScript · Next.js · Vercel.
