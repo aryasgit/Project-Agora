@@ -23,11 +23,12 @@ web/console/
   lib/            engine.ts · traders.ts · simulation.ts · world.ts  (TS engine port)
   components/     CandleChart · OrderTicket · TraderControls · Sparkline
   app/            the console (canvas chart, book ladder, tape, analytics, rail)
-tests/            pytest — 21 cases, engine-first
+tests/            pytest — 26 cases, engine-first
+  benchmark.py    throughput harness — ~95k orders/sec single-threaded
 vault/            Obsidian knowledge base — concepts, ADRs, glossary, milestones
 ```
 
-**Scale:** ~927 LOC in the core Python engine (8 modules) with 21 passing tests (217 LOC); ~1,420 LOC of TypeScript/React in the console; 25 vault notes; deployed on Vercel.
+**Scale:** ~1,090 LOC in the core Python engine (9 modules incl. a throughput benchmark) with **26 passing tests** (300 LOC); ~1,550 LOC of TypeScript/React in the console; 26 vault notes; deployed on Vercel.
 
 **Live console → https://console-ecru-omega.vercel.app** · **Repo → github.com/aryasgit/Project-Agora**
 
@@ -44,6 +45,7 @@ vault/            Obsidian knowledge base — concepts, ADRs, glossary, mileston
 | 8 | **Analytics** — VWAP, bid-ask spread + history, order imbalance, realized volatility, market depth, trade frequency |
 | 9 | **Interactive console** — strict-black TradingView-style Next.js UI (custom-canvas candlesticks, depth ladder, time & sales, analytics sparklines); manual **order ticket with live slippage vs mid**; **live trader-mix sliders** + scenario presets (Calm / Flash Crash / Liquidity Crisis); keyboard shortcuts; URL-shareable seed; responsive; deployed to Vercel |
 | 10 | **Multi-asset** — 4 independent instruments (index / large-cap / small-cap / ETF), each its own book, with a live watchlist + symbol switcher |
+| 10+ | **Queue position & latency** — per-order latency (fast MMs colocate) with latency-ordered arrival; a `queue_position` primitive (lots ahead / rank at a level) surfaced live in the console. **Throughput benchmark**: ~95k orders/sec single-threaded, pure CPython |
 
 ## 4. What the platform demonstrates (the intellectually honest part)
 This is a **research/teaching simulator**, not a source of alpha and not calibrated to real order-flow data — the agents are stylized. Framed that way, it correctly reproduces the core mechanisms of a real market:
@@ -53,6 +55,7 @@ This is a **research/teaching simulator**, not a source of alpha and not calibra
 - **Regime depends on the trader mix, not on any single "price model."** More market makers → tighter spreads and deeper liquidity; more momentum traders + fewer makers → a self-reinforcing **flash crash**. The console's scenario presets make this cause→effect visible live.
 - **Character scales with liquidity.** The thin, momentum-driven small-cap (NOVA) runs ~15× the realized volatility of the deep index (AGORA) — an authentic small-cap signature that emerges from its trader population, not a hardcoded parameter.
 - **Order imbalance is a signal.** Top-of-book bid/ask volume imbalance is computed and charted; it leads short-term price pressure, one of the most-used real microstructure signals.
+- **Queue position governs fills — and latency governs queue position.** Orders arrive in latency order (fast market makers first), so the race to the front of the FIFO queue is explicit. The console shows exactly how many lots sit ahead of your resting order — the quantity that decides whether you fill and how much adverse selection you eat. This is the single most matching-engine/market-making-authentic idea in the project.
 
 ## 5. Tech stack
 **Python 3.14** · `sortedcontainers` (order-book structure) · pytest.
@@ -67,7 +70,10 @@ This is a **research/teaching simulator**, not a source of alpha and not calibra
 > **Electronic Exchange Simulator** — Built a first-principles limit-order-book matching engine in Python enforcing **price-time priority** (full/partial fills, cancel/modify, stop-order cascades) across MARKET/LIMIT/STOP order types and GTC/IOC/FOK time-in-force, with a 21-case test suite.
 
 **Data-structures / systems:**
-> Designed the order book for correctness and speed — integer-tick prices (off-grid prices rejected so floats never key the book), a `SortedDict` of price levels for O(1) best-of-book and O(log n) level maintenance, and FIFO queues encoding time priority — keeping the matching engine a pure, dependency-free, independently testable module.
+> Designed the order book for correctness and speed — integer-tick prices (off-grid prices rejected so floats never key the book), a `SortedDict` of price levels for O(1) best-of-book and O(log n) level maintenance, and FIFO queues encoding time priority — sustaining **~95k orders/sec single-threaded in pure Python**, verified by a throughput benchmark.
+
+**Microstructure depth (matching-engine / market-making signal):**
+> Modelled per-order latency with latency-ordered arrival and a queue-position primitive (lots-ahead / rank at a price level), surfaced live in the console — demonstrating how latency wins queue priority and how queue position drives fill probability and adverse selection.
 
 **Microstructure / simulation:**
 > Modelled six interacting trader archetypes (market maker with inventory skew, momentum, mean-reversion, noise, institutional, passive) whose order flow produces an **emergent** price series, and built an analytics layer (VWAP, bid-ask spread, order imbalance, realized volatility, market depth) to quantify liquidity and market impact.
@@ -93,7 +99,7 @@ This is a **research/teaching simulator**, not a source of alpha and not calibra
 **Where it's vulnerable (name these before they do):**
 - **Stylized agents, not calibrated to real data.** The traders are archetypes, not fitted to historical order flow — so it explains *mechanisms*, not real-market magnitudes. Say this; it's the honest frame.
 - **The console runs a TypeScript port of the engine, not the Python one** (a deliberate call for a backend-free deploy — ADR-0003). The trade-off is two implementations of the matching rules; mitigated by the Python engine being the tested reference. Good "engineering trade-off" talking point.
-- **Single venue, no latency/queue-position or fee model.** Real microstructure has network latency, queue position, and maker-taker fees. Naming these as the next realism layer shows you know what's missing.
+- **No fee model or cross-venue.** Latency and queue position are now modelled; the remaining realism gaps are maker-taker fees and multiple competing venues (SIP/NBBO). Naming these as the next layer shows you know what's still missing.
 
 **The one high-leverage add (optional):** a **latency / queue-position** dimension — even a simple per-order delay so that where you sit in the FIFO queue matters — is the single most microstructure-authentic extension and the natural "what would you do next" answer. Not required for the portfolio; worth *saying*.
 

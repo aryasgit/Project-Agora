@@ -155,6 +155,8 @@ export class Simulation {
 
   /** Submit a manual order on behalf of the user ("YOU"). Returns a fill
    * summary so the UI can show realised price + slippage vs the pre-trade mid. */
+  myOrderId: number | null = null; // the user's live resting order, for queue display
+
   submitManual(side: Side, type: "MARKET" | "LIMIT", qty: number, priceTicks: number | null) {
     const midBefore = this.eng.mid();
     const o: Order = {
@@ -166,13 +168,21 @@ export class Simulation {
       tif: "GTC",
       traderId: "YOU",
       seq: 0,
+      latency: 0, // your click reaches the book immediately
       originalQuantity: qty,
     };
     const trades = this.eng.submit(o);
     const filled = trades.reduce((s, t) => s + t.quantity, 0);
     const notional = trades.reduce((s, t) => s + t.price * t.quantity, 0);
     const avg = filled ? notional / filled : null;
-    return { filled, avg, resting: qty - filled, midBefore, side, type };
+    const resting = qty - filled;
+    // Track it only if some of it actually rests in the book (a resting LIMIT).
+    this.myOrderId = resting > 0 && this.eng.queuePosition(o.id) !== null ? o.id : null;
+    return { filled, avg, resting, midBefore, side, type };
+  }
+
+  myQueue() {
+    return this.eng.queuePosition(this.myOrderId);
   }
 
   private routeFill(t: Trade) {
@@ -194,13 +204,18 @@ export class Simulation {
 
   step() {
     this.eng.step++;
-    const order = [...this.traders];
-    // Fisher-Yates with the sim rng
-    for (let i = order.length - 1; i > 0; i--) {
-      const j = Math.floor(this.rng() * (i + 1));
-      [order[i], order[j]] = [order[j], order[i]];
+    // Collect all orders this step, then submit them in ARRIVAL order —
+    // arrival = trader latency + jitter. Faster agents (market makers) reach the
+    // book first and claim the front of the queue. This is what makes queue
+    // position, and the latency race for it, meaningful.
+    const pending: { arrival: number; order: Order }[] = [];
+    for (const tr of this.traders) {
+      for (const o of tr.act(this.eng, this.rng)) {
+        pending.push({ arrival: (o.latency ?? 100) + this.rng(), order: o });
+      }
     }
-    for (const tr of order) for (const o of tr.act(this.eng, this.rng)) this.eng.submit(o);
+    pending.sort((a, b) => a.arrival - b.arrival);
+    for (const p of pending) this.eng.submit(p.order);
 
     const sp = this.eng.spread();
     if (sp !== null) {

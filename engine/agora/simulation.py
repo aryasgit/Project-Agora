@@ -54,11 +54,18 @@ class Simulation:
 
     def step(self) -> None:
         self.step_count += 1
-        order_traders = list(self.traders)
-        self.rng.shuffle(order_traders)  # randomise action order each step
-        for trader in order_traders:
+        # Collect every order generated this step, then submit them in ARRIVAL
+        # order: arrival = the trader's latency + a little jitter. Faster agents
+        # (market makers) reach the book first and win the front of the queue —
+        # this is what makes queue position, and the race for it, meaningful.
+        pending = []
+        for trader in self.traders:
             for order in trader.act(self.engine, self.rng):
-                self.engine.submit(order)
+                jitter = self.rng.random()
+                pending.append((order.latency + jitter, order))
+        pending.sort(key=lambda p: p[0])
+        for _, order in pending:
+            self.engine.submit(order)
         self.analytics.capture(self.step_count)
 
     def run(self, steps: int) -> Analytics:

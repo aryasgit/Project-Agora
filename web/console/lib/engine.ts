@@ -15,6 +15,7 @@ export interface Order {
   tif: TIF;
   traderId?: string;
   seq: number;
+  latency?: number; // arrival delay; lower = faster tech = better queue spot
   originalQuantity: number;
 }
 
@@ -107,6 +108,39 @@ class BookSide {
   depth(n: number): [number, number][] {
     return this.levels.slice(0, n).map((l) => [l.price, l.volume]);
   }
+
+  queuePosition(id: number): QueuePosition | null {
+    for (const lvl of this.levels) {
+      const idx = lvl.orders.findIndex((o) => o.id === id);
+      if (idx < 0) continue;
+      let volumeAhead = 0;
+      for (let i = 0; i < idx; i++) volumeAhead += lvl.orders[i].quantity;
+      let volumeBehind = 0;
+      for (let i = idx + 1; i < lvl.orders.length; i++) volumeBehind += lvl.orders[i].quantity;
+      return {
+        price: lvl.price,
+        rank: idx + 1,
+        totalOrders: lvl.orders.length,
+        ordersAhead: idx,
+        volumeAhead,
+        ordersBehind: lvl.orders.length - idx - 1,
+        volumeBehind,
+        ownRemaining: lvl.orders[idx].quantity,
+      };
+    }
+    return null;
+  }
+}
+
+export interface QueuePosition {
+  price: number;
+  rank: number;
+  totalOrders: number;
+  ordersAhead: number;
+  volumeAhead: number;
+  ordersBehind: number;
+  volumeBehind: number;
+  ownRemaining: number;
 }
 
 export class MatchingEngine {
@@ -122,6 +156,11 @@ export class MatchingEngine {
 
   nextId() {
     return ++this.idSeq;
+  }
+
+  queuePosition(id: number | null): QueuePosition | null {
+    if (id === null) return null;
+    return this.bids.queuePosition(id) ?? this.asks.queuePosition(id);
   }
 
   bestBid(): number | null {

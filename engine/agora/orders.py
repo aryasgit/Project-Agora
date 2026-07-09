@@ -43,6 +43,7 @@ class Order:
     tif: TimeInForce = TimeInForce.GTC
     trader_id: str | None = None
     seq: int = 0                  # arrival sequence — the "time" in price-time priority
+    latency: int = 0              # arrival delay; lower latency → earlier arrival → better queue spot
     original_quantity: int = 0
 
     def __post_init__(self) -> None:

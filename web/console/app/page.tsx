@@ -2,11 +2,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Summary, PRESETS, TraderConfig } from "@/lib/simulation";
 import { World, change } from "@/lib/world";
-import type { Trade } from "@/lib/engine";
+import type { Trade, Side } from "@/lib/engine";
 import CandleChart from "@/components/CandleChart";
 import Sparkline from "@/components/Sparkline";
 import OrderTicket from "@/components/OrderTicket";
 import TraderControls from "@/components/TraderControls";
+import QueuePanel from "@/components/QueuePanel";
 
 const TICK = 0.01;
 const fmt = (t: number | null) => (t === null ? "—" : (t * TICK).toFixed(2));
@@ -32,6 +33,7 @@ export default function Console() {
   const [speed, setSpeed] = useState(1);
   const [selected, setSelected] = useState(0);
   const [railOpen, setRailOpen] = useState(true);
+  const [myOrderSide, setMyOrderSide] = useState<Side | null>(null);
   const raf = useRef<number | null>(null);
   const prevPrice = useRef<number | null>(null);
 
@@ -297,10 +299,13 @@ export default function Console() {
               refPrice={sim.eng.marketPrice()}
               onSubmit={(side, type, qty, price) => {
                 const r = sim.submitManual(side, type, qty, price);
+                setMyOrderSide(r.resting > 0 ? side : null);
                 force((x) => x + 1);
                 return r;
               }}
             />
+            <div className="panel-subtitle">Your Queue Position</div>
+            <QueuePanel q={sim.myQueue()} side={myOrderSide} />
           </div>
           <div className="panel rail-mix">
             <div className="panel-title">Trader Mix · scenarios</div>

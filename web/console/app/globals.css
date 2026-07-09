@@ -496,6 +496,79 @@ canvas {
   color: var(--text);
 }
 
+/* queue position */
+.panel-subtitle {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-top: 1px solid var(--hair);
+}
+.queue {
+  padding: 8px 12px 12px;
+}
+.queue.empty {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.6;
+}
+.queue.empty b {
+  color: var(--text);
+}
+.q-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 7px;
+  font-variant-numeric: tabular-nums;
+}
+.q-head b {
+  color: var(--text);
+}
+.q-side {
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-size: 11px;
+}
+.q-bar {
+  display: flex;
+  height: 8px;
+  background: #1a1a1e;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.q-ahead {
+  background: #3a3a42;
+}
+.q-own {
+  background: var(--accent);
+}
+.q-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  text-align: center;
+}
+.q-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.q-num {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.q-lbl {
+  font-size: 8.5px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
 /* trader mix */
 .mix {
   padding: 10px 12px;

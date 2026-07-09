@@ -16,6 +16,8 @@ type Rng = () => number;
 const randint = (r: Rng, lo: number, hi: number) => lo + Math.floor(r() * (hi - lo + 1));
 
 export abstract class Trader {
+  // Base arrival latency (lower = faster tech = better queue position).
+  latency = 100;
   constructor(public id: string) {}
   abstract act(eng: MatchingEngine, r: Rng): Order[];
   protected order(
@@ -35,12 +37,14 @@ export abstract class Trader {
       tif,
       traderId: this.id,
       seq: 0,
+      latency: this.latency,
       originalQuantity: quantity,
     };
   }
 }
 
 export class RandomTrader extends Trader {
+  latency = 90;
   constructor(id: string, public maxQty = 5, public activity = 0.7) {
     super(id);
   }
@@ -57,6 +61,7 @@ export class RandomTrader extends Trader {
 }
 
 export class MarketMaker extends Trader {
+  latency = 10; // colocated / fastest — wins the race to the front of the queue
   inventory = 0;
   private live: number[] = [];
   constructor(id: string, public halfSpread = 3, public quoteSize = 10, public maxInv = 60) {
@@ -92,6 +97,7 @@ export class MarketMaker extends Trader {
 }
 
 export class MomentumTrader extends Trader {
+  latency = 30;
   constructor(id: string, public lookback = 12, public qty = 4, public threshold = 2) {
     super(id);
   }
@@ -106,6 +112,7 @@ export class MomentumTrader extends Trader {
 }
 
 export class MeanReversionTrader extends Trader {
+  latency = 40;
   constructor(id: string, public lookback = 20, public qty = 4, public band = 3) {
     super(id);
   }
@@ -121,6 +128,7 @@ export class MeanReversionTrader extends Trader {
 }
 
 export class AggressiveBuyer extends Trader {
+  latency = 20; // well-resourced desk
   constructor(id: string, public qty = 8, public activity = 0.15) {
     super(id);
   }
@@ -131,6 +139,7 @@ export class AggressiveBuyer extends Trader {
 }
 
 export class PassiveSeller extends Trader {
+  latency = 120; // patient, slow
   constructor(id: string, public qty = 6, public offset = 6, public activity = 0.4) {
     super(id);
   }

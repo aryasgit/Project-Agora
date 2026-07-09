@@ -16,6 +16,11 @@ from .orders import Order, OrderType, Side, TimeInForce
 
 
 class Trader:
+    # Base arrival latency (lower = faster tech = better queue position). Fast
+    # market makers colocate; noise/retail flow is slow. This is what makes the
+    # race for the front of the queue meaningful.
+    latency: int = 100
+
     def __init__(self, trader_id: str):
         self.id = trader_id
 
@@ -25,12 +30,15 @@ class Trader:
     # helper for subclasses
     def _order(self, eng, side, otype, qty, price=None, tif=TimeInForce.GTC, stop=None):
         return Order(id=eng.next_id(), side=side, type=otype, quantity=qty,
-                     price=price, stop_price=stop, tif=tif, trader_id=self.id)
+                     price=price, stop_price=stop, tif=tif, trader_id=self.id,
+                     latency=self.latency)
 
 
 class RandomTrader(Trader):
     """Uninformed 'noise' flow: randomly buys or sells near the touch. This is
     the baseline that keeps the market ticking."""
+
+    latency = 90  # retail-ish: relatively slow
 
     def __init__(self, trader_id, max_qty=5, activity=0.7):
         super().__init__(trader_id)
@@ -55,6 +63,8 @@ class RandomTrader(Trader):
 class MarketMaker(Trader):
     """Liquidity provider: continuously quotes both sides around a reference,
     skewing quotes as inventory builds (inventory risk management)."""
+
+    latency = 10  # colocated / fastest — wins the race to the front of the queue
 
     def __init__(self, trader_id, half_spread=3, quote_size=10, max_inventory=50):
         super().__init__(trader_id)
@@ -94,6 +104,8 @@ class MomentumTrader(Trader):
     """Trend-follower: buys when price has been rising, sells when falling.
     Amplifies moves — the seed of volatility and, in extremis, flash crashes."""
 
+    latency = 30
+
     def __init__(self, trader_id, lookback=10, qty=4, threshold=2):
         super().__init__(trader_id)
         self.lookback = lookback
@@ -115,6 +127,8 @@ class MomentumTrader(Trader):
 class MeanReversionTrader(Trader):
     """Fades extremes: sells when price runs above its recent average, buys
     when it dips below. A stabilising force that opposes momentum."""
+
+    latency = 40
 
     def __init__(self, trader_id, lookback=20, qty=4, band=3):
         super().__init__(trader_id)
@@ -139,6 +153,8 @@ class AggressiveBuyer(Trader):
     """A large directional buyer (think an institution accumulating). Sends
     market buys; demonstrates market impact when unsliced."""
 
+    latency = 20  # well-resourced desk
+
     def __init__(self, trader_id, qty=8, activity=0.3):
         super().__init__(trader_id)
         self.qty = qty
@@ -153,6 +169,8 @@ class AggressiveBuyer(Trader):
 class PassiveSeller(Trader):
     """Rests offers above the market and waits — pure liquidity provision on
     one side."""
+
+    latency = 120  # patient, slow
 
     def __init__(self, trader_id, qty=6, offset=6, activity=0.4):
         super().__init__(trader_id)

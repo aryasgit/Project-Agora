@@ -24,8 +24,18 @@ Most "quant" student projects predict prices. This one asks a more fundamental q
 - **Order types:** market, limit, stop, stop-limit · **time-in-force:** GTC, IOC, FOK.
 - **Simulated traders:** market maker (with inventory skew), momentum, mean-reversion, noise, aggressive institutional, passive — the market self-organises from their interaction.
 - **Analytics:** VWAP, bid-ask spread, order imbalance, realized volatility, market depth, trade frequency.
+- **Queue position & latency:** every order carries a latency (fast market makers reach the book first); orders arrive in latency order, and the console shows **exactly where your resting order sits in the FIFO queue** — lots ahead, yours, behind — the quantity that actually governs fill probability and adverse selection.
 - **Multi-asset:** four independent instruments (index, large-cap, small-cap, ETF), each with its own book — a small-cap is genuinely ~15× more volatile than the index.
-- **Interactive console:** send your own orders and see the slippage, edit the trader mix live, trigger scenario presets (Calm / Flash Crash / Liquidity Crisis).
+- **Interactive console:** send your own orders and see the slippage, watch your queue position, edit the trader mix live, trigger scenario presets (Calm / Flash Crash / Liquidity Crisis).
+
+## Performance
+
+The matching engine sustains **~95,000 orders/sec single-threaded in pure CPython** on a realistic limit/market/cancel mix (no C extensions, no batching):
+
+```bash
+cd engine && python -m agora.benchmark 200000
+```
+
 
 ## Architecture
 
@@ -51,7 +61,8 @@ flowchart LR
 - **Data structures with intent.** `SortedDict` of price → level gives O(log n) level maintenance and O(1) best-of-book; a `deque` per level encodes time priority as FIFO. Complexity is a design choice, not an accident.
 - **Price-time priority, correctly.** Best price first; ties by arrival order. `modify` is cancel-replace and *loses* time priority — matching real exchange semantics.
 - **Instrument-agnostic engine.** Multi-asset required **zero** changes to the matcher — just N engines and a router, exactly as real venues work.
-- **Tested.** 21 `pytest` cases cover market-impact walks, partial fills, IOC/FOK, cancel/modify, and stop cascades.
+- **Queue position & latency.** Orders carry a latency and arrive in latency order; a `queue_position` primitive exposes lots-ahead / rank at a price level — the real driver of fill probability that market-making desks optimise for.
+- **Tested.** 26 `pytest` cases cover market-impact walks, partial fills, IOC/FOK, cancel/modify, stop cascades, and queue-position accounting.
 
 ## Run it
 

@@ -13,11 +13,32 @@ O(1) append (new resting order) and O(1) popleft (fill the front of the queue).
 from __future__ import annotations
 
 from collections import deque
+from dataclasses import dataclass
 from typing import Iterable, Iterator, Optional
 
 from sortedcontainers import SortedDict
 
 from .orders import Order, Side
+
+
+@dataclass(frozen=True, slots=True)
+class QueuePosition:
+    """Where a resting order stands in the FIFO queue at its price level.
+
+    This is the quantity market makers obsess over: your fill probability is
+    governed by how much volume sits *ahead* of you, because price-time
+    priority fills the front of the queue first. Lower latency → earlier
+    arrival → fewer lots ahead → you trade sooner and suffer less adverse
+    selection.
+    """
+    price: int
+    rank: int            # 1-based position in the queue (1 = front, next to fill)
+    total_orders: int    # total resting orders at this price level
+    orders_ahead: int
+    volume_ahead: int    # lots that must fill before you
+    orders_behind: int
+    volume_behind: int
+    own_remaining: int   # your own remaining quantity
 
 
 class PriceLevel:
@@ -114,6 +135,43 @@ class OrderBook:
 
     def contains(self, order_id: int) -> bool:
         return order_id in self._index
+
+    def queue_position(self, order_id: int) -> Optional[QueuePosition]:
+        """Return where a resting order stands in its price-level FIFO queue.
+
+        O(k) in the number of orders at that one price level. Returns None if
+        the order isn't resting (never placed, already filled, or cancelled).
+        """
+        loc = self._index.get(order_id)
+        if loc is None:
+            return None
+        side, price = loc
+        level = self._side_map(side).get(self._key(side, price))
+        if level is None:
+            return None
+        orders_ahead = 0
+        volume_ahead = 0
+        own: Optional[Order] = None
+        for o in level.orders:
+            if o.id == order_id:
+                own = o
+                break
+            orders_ahead += 1
+            volume_ahead += o.quantity
+        if own is None:
+            return None
+        rank = orders_ahead + 1
+        behind = list(level.orders)[rank:]
+        return QueuePosition(
+            price=price,
+            rank=rank,
+            total_orders=len(level.orders),
+            orders_ahead=orders_ahead,
+            volume_ahead=volume_ahead,
+            orders_behind=len(behind),
+            volume_behind=sum(o.quantity for o in behind),
+            own_remaining=own.quantity,
+        )
 
     # --- best-of-book ----------------------------------------------------
     def best_bid(self) -> Optional[int]:

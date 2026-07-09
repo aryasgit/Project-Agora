@@ -6,7 +6,7 @@ dependency on any web/UI layer (see vault ADR-0001).
 """
 from .instrument import Instrument
 from .orders import Order, Side, OrderType, TimeInForce, Trade
-from .book import OrderBook, PriceLevel
+from .book import OrderBook, PriceLevel, QueuePosition
 from .engine import MatchingEngine
 
 __all__ = [
@@ -18,5 +18,6 @@ __all__ = [
     "Trade",
     "OrderBook",
     "PriceLevel",
+    "QueuePosition",
     "MatchingEngine",
 ]
