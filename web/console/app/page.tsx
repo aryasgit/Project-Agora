@@ -31,6 +31,7 @@ export default function Console() {
   const [running, setRunning] = useState(true);
   const [speed, setSpeed] = useState(1);
   const [selected, setSelected] = useState(0);
+  const [railOpen, setRailOpen] = useState(true);
   const raf = useRef<number | null>(null);
   const prevPrice = useRef<number | null>(null);
 
@@ -155,6 +156,13 @@ export default function Console() {
           </button>
           <button className="ctl" onClick={reseed}>
             Reseed
+          </button>
+          <button
+            className={`ctl ${railOpen ? "active" : ""}`}
+            onClick={() => setRailOpen((o) => !o)}
+            title="Toggle instrument panel"
+          >
+            {railOpen ? "Panel ›" : "‹ Panel"}
           </button>
         </div>
       </div>
@@ -282,7 +290,7 @@ export default function Console() {
           </div>
         </div>
 
-        <aside className="rail">
+        <aside className={`rail ${railOpen ? "" : "rail-collapsed"}`} aria-hidden={!railOpen}>
           <div className="panel">
             <div className="panel-title">Order Ticket · {market.spec.symbol}</div>
             <OrderTicket

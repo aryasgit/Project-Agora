@@ -230,6 +230,16 @@ canvas {
   gap: 1px;
   background: var(--hair);
   min-height: 0;
+  overflow: hidden;
+  transition: flex-basis 0.18s ease, opacity 0.14s ease;
+}
+.rail.rail-collapsed {
+  flex-basis: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.rail.rail-collapsed > .panel {
+  min-width: 250px; /* keep contents from reflowing while sliding shut */
 }
 .rail .rail-mix {
   flex: 1 1 auto;
