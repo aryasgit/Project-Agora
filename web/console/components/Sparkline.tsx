@@ -4,7 +4,7 @@
 // (used for order imbalance, which ranges -1..+1).
 export default function Sparkline({
   data,
-  color = "#2ebd6b",
+  color = "#16c784",
   height = 34,
   bipolar = false,
 }: {

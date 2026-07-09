@@ -4,6 +4,7 @@ import { Summary, PRESETS, TraderConfig } from "@/lib/simulation";
 import { World, change } from "@/lib/world";
 import type { Trade, Side } from "@/lib/engine";
 import CandleChart from "@/components/CandleChart";
+import DepthMap from "@/components/DepthMap";
 import Sparkline from "@/components/Sparkline";
 import OrderTicket from "@/components/OrderTicket";
 import TraderControls from "@/components/TraderControls";
@@ -34,13 +35,16 @@ export default function Console() {
   const [selected, setSelected] = useState(0);
   const [railOpen, setRailOpen] = useState(true);
   const [myOrderSide, setMyOrderSide] = useState<Side | null>(null);
+  const [chartMode, setChartMode] = useState<"map" | "candles">("map");
+  const [seed, setSeed] = useState(42);
   const raf = useRef<number | null>(null);
   const prevPrice = useRef<number | null>(null);
 
   useEffect(() => {
-    const seed = readSeed();
-    if (seed !== 42) {
-      worldRef.current = new World(seed);
+    const s = readSeed();
+    if (s !== 42) {
+      worldRef.current = new World(s);
+      setSeed(s);
       force((x) => x + 1);
     }
   }, []);
@@ -59,12 +63,13 @@ export default function Console() {
   }, [running, tick]);
 
   const reseed = useCallback(() => {
-    const seed = Math.floor(Math.random() * 1e9);
-    worldRef.current = new World(seed);
+    const s = Math.floor(Math.random() * 1e9);
+    worldRef.current = new World(s);
+    setSeed(s);
     prevPrice.current = null;
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
-      url.searchParams.set("seed", String(seed));
+      url.searchParams.set("seed", String(s));
       window.history.replaceState({}, "", url);
     }
     force((x) => x + 1);
@@ -200,9 +205,26 @@ export default function Console() {
               <span>
                 {market.spec.name} · {market.spec.symbol}
               </span>
-              <span className="col-key">candles · 5-step</span>
+              <span className="chart-tabs">
+                <button
+                  className={`tab ${chartMode === "map" ? "on" : ""}`}
+                  onClick={() => setChartMode("map")}
+                >
+                  Depth Map
+                </button>
+                <button
+                  className={`tab ${chartMode === "candles" ? "on" : ""}`}
+                  onClick={() => setChartMode("candles")}
+                >
+                  Candles
+                </button>
+              </span>
             </div>
-            <CandleChart candles={sim.candles} tickSize={TICK} version={sim.eng.step} />
+            {chartMode === "map" ? (
+              <DepthMap slices={sim.depthHist} tickSize={TICK} version={sim.eng.step} />
+            ) : (
+              <CandleChart candles={sim.candles} tickSize={TICK} version={sim.eng.step} />
+            )}
           </div>
 
           <div className="panel book-panel">
@@ -285,7 +307,7 @@ export default function Console() {
                 <Sparkline
                   data={sim.imbalanceHist}
                   bipolar
-                  color={s.orderImbalance && s.orderImbalance < 0 ? "#ef4560" : "#2ebd6b"}
+                  color={s.orderImbalance && s.orderImbalance < 0 ? "#ff3347" : "#16c784"}
                 />
               </div>
             </div>
@@ -317,6 +339,18 @@ export default function Console() {
             />
           </div>
         </aside>
+      </div>
+
+      {/* terminal status strip */}
+      <div className="statusbar">
+        <span className={running ? "sb-live" : "sb-halt"}>{running ? "● LIVE" : "■ HALTED"}</span>
+        <span>STEP {sim.eng.step.toLocaleString()}</span>
+        <span>SEED {seed}</span>
+        <span>BOOK {depth.bids.length}×{depth.asks.length} LVLS</span>
+        <span>TAPE {s.tradeCount.toLocaleString()} FILLS</span>
+        <span className="sb-right">
+          LATENCY MM 10 · INST 20 · MOM 30 · MR 40 · NSE 90 · PSV 120 · ENGINE ~95K ORD/S
+        </span>
       </div>
     </div>
   );

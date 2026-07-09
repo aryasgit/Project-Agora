@@ -46,6 +46,7 @@ vault/            Obsidian knowledge base — concepts, ADRs, glossary, mileston
 | 9 | **Interactive console** — strict-black TradingView-style Next.js UI (custom-canvas candlesticks, depth ladder, time & sales, analytics sparklines); manual **order ticket with live slippage vs mid**; **live trader-mix sliders** + scenario presets (Calm / Flash Crash / Liquidity Crisis); keyboard shortcuts; URL-shareable seed; responsive; deployed to Vercel |
 | 10 | **Multi-asset** — 4 independent instruments (index / large-cap / small-cap / ETF), each its own book, with a live watchlist + symbol switcher |
 | 10+ | **Queue position & latency** — per-order latency (fast MMs colocate) with latency-ordered arrival; a `queue_position` primitive (lots ahead / rank at a level) surfaced live in the console. **Throughput benchmark**: ~95k orders/sec single-threaded, pure CPython |
+| 10+ | **Liquidity Depth Map** — a Bookmap-style time×price heatmap (log-intensity resting volume, asks red / bids green, trades as white strikes, last-price trace) as the console's default chart. Makes liquidity *visible as a substance*: walls forming, the book hollowing out mid-flash-crash. The signature visual of professional order-flow tools |
 
 ## 4. What the platform demonstrates (the intellectually honest part)
 This is a **research/teaching simulator**, not a source of alpha and not calibrated to real order-flow data — the agents are stylized. Framed that way, it correctly reproduces the core mechanisms of a real market:

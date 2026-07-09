@@ -77,7 +77,7 @@ export default function CandleChart({
       const c = view[i];
       const cx = i * cw + cw / 2;
       const up = c.c >= c.o;
-      const col = up ? "#2ebd6b" : "#ef4560";
+      const col = up ? "#16c784" : "#ff3347";
       ctx.strokeStyle = col;
       ctx.fillStyle = col;
       // wick
@@ -96,14 +96,14 @@ export default function CandleChart({
     // last price line
     const last = view[n - 1].c;
     const ly = y(last);
-    ctx.strokeStyle = last >= view[n - 1].o ? "#2ebd6b" : "#ef4560";
+    ctx.strokeStyle = last >= view[n - 1].o ? "#16c784" : "#ff3347";
     ctx.setLineDash([2, 3]);
     ctx.beginPath();
     ctx.moveTo(0, ly);
     ctx.lineTo(plotW, ly);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = last >= view[n - 1].o ? "#2ebd6b" : "#ef4560";
+    ctx.fillStyle = last >= view[n - 1].o ? "#16c784" : "#ff3347";
     ctx.fillRect(plotW, ly - 8, padR, 16);
     ctx.fillStyle = "#000";
     ctx.fillText((last * tickSize).toFixed(2), plotW + 6, ly);

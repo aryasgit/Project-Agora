@@ -20,6 +20,15 @@ export interface Candle {
   v: number;
 }
 
+/** One column of the liquidity heatmap: the visible book at one step. */
+export interface DepthSlice {
+  step: number;
+  bids: [number, number][]; // [price, volume] best-first
+  asks: [number, number][];
+  last: number | null;
+  trades: [number, number][]; // [price, qty] executed during this step
+}
+
 export interface Summary {
   lastPrice: number | null;
   vwap: number | null;
@@ -91,6 +100,7 @@ export class Simulation {
   private mids: number[] = [];
   imbalanceHist: number[] = [];
   spreadHist: number[] = [];
+  depthHist: DepthSlice[] = []; // scrolling liquidity-heatmap history
   candles: Candle[] = [];
   private candleSize = 5; // steps per candle
   tickSize = 0.01;
@@ -230,7 +240,28 @@ export class Simulation {
       this.imbalanceHist.push(imb);
       if (this.imbalanceHist.length > 200) this.imbalanceHist.shift();
     }
+    this.recordDepthSlice();
     this.updateCandles();
+  }
+
+  /** Capture the visible book (top 24 levels/side) + this step's trades for
+   * the liquidity heatmap. Ring buffer bounds memory. */
+  private recordDepthSlice() {
+    const d = this.eng.depth(24);
+    const trades = new Map<number, number>();
+    for (let i = this.eng.trades.length - 1; i >= 0; i--) {
+      const t = this.eng.trades[i];
+      if (t.step !== this.eng.step) break;
+      trades.set(t.price, (trades.get(t.price) ?? 0) + t.quantity);
+    }
+    this.depthHist.push({
+      step: this.eng.step,
+      bids: d.bids,
+      asks: d.asks,
+      last: this.eng.lastPrice,
+      trades: [...trades.entries()],
+    });
+    if (this.depthHist.length > 360) this.depthHist.shift();
   }
 
   private imbalanceNow(): number | null {
