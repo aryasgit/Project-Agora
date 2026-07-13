@@ -9,6 +9,7 @@ import Sparkline from "@/components/Sparkline";
 import OrderTicket from "@/components/OrderTicket";
 import TraderControls from "@/components/TraderControls";
 import QueuePanel from "@/components/QueuePanel";
+import ScenarioLab from "@/components/ScenarioLab";
 
 const TICK = 0.01;
 const fmt = (t: number | null) => (t === null ? "—" : (t * TICK).toFixed(2));
@@ -37,6 +38,7 @@ export default function Console() {
   const [myOrderSide, setMyOrderSide] = useState<Side | null>(null);
   const [chartMode, setChartMode] = useState<"map" | "candles">("map");
   const [seed, setSeed] = useState(42);
+  const [labOpen, setLabOpen] = useState(false);
   const raf = useRef<number | null>(null);
   const prevPrice = useRef<number | null>(null);
 
@@ -145,6 +147,9 @@ export default function Console() {
           <span className={`px ${dir > 0 ? "up" : dir < 0 ? "down" : ""}`}>{fmt(last)}</span>
         </div>
         <div className="spacer" />
+        <button className="ctl lab-open" onClick={() => setLabOpen(true)}>
+          ⑂ Scenario Lab
+        </button>
         <span className="kbd-hint">space pause · → step · r reseed</span>
         <div className="controls">
           <div className="speed">
@@ -352,6 +357,16 @@ export default function Console() {
           LATENCY MM 10 · INST 20 · MOM 30 · MR 40 · NSE 90 · PSV 120 · ENGINE ~95K ORD/S
         </span>
       </div>
+
+      {labOpen && (
+        <ScenarioLab
+          symbol={market.spec.symbol}
+          config={market.config}
+          startMid={market.spec.startMid}
+          seed={seed}
+          onClose={() => setLabOpen(false)}
+        />
+      )}
     </div>
   );
 }

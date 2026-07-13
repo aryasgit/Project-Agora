@@ -7,7 +7,7 @@
 ---
 
 ## 1. What it is (one line)
-A first-principles **electronic exchange simulator**: a limit order book, a price-time-priority matching engine, a population of interacting trading agents, and an analytics layer — packaged as a tested, importable Python engine plus a live, brutal-black trading console (Next.js on Vercel) and a knowledge vault documenting every concept and decision. Prices are never set; they **emerge** from order flow.
+A **decision-intelligence system for market microstructure**: a first-principles electronic exchange (limit order book, price-time-priority matching engine, interacting trading agents, analytics) wrapped in a tool that answers *"what happens if I do X?"* before you commit — by forking the market into control vs. treatment timelines and producing a decision report. Shipped as a tested, importable Python engine plus a live brutal-black console (Next.js on Vercel) and a knowledge vault. Prices are never set; they **emerge** from order flow.
 
 ## 2. What it is (the fuller picture)
 Most people breaking into quant build a *backtester* — they take historical prices and test whether a signal would have made money. Agora builds the thing underneath that: **the exchange itself.** It models how a real venue works internally — orders arriving, resting in a book, matching by strict priority rules, and a price *emerging* from the collision of buyers and sellers. Then it populates that exchange with autonomous trading agents (market makers, momentum chasers, institutions) and lets a market form on its own, which you watch and trade into through a professional-grade console.
@@ -51,6 +51,11 @@ vault/            Obsidian knowledge base — concepts, ADRs, glossary, mileston
 - **6 trading agents** — market maker (two-sided quotes with inventory skew), momentum, mean-reversion, noise, aggressive institutional, passive — whose order flow *produces* an emergent price series.
 - **Analytics** — VWAP, bid-ask spread + history, order imbalance, realized volatility, market depth, trade frequency, with live sparklines.
 
+**Decision intelligence (the reframe)**
+- **Scenario Lab** — fork the live market into a **control** and a **treatment** timeline from an identical seed/state, apply one intervention to the treatment, run both forward, and measure the difference (which is *causally* attributable to the intervention). Repeated across **8 independent seeds** so the verdict carries a real confidence, not a single lucky run.
+- Produces a **decision report**: verdict, a rule-based **causal chain** derived from measured deltas (*makers removed → spread widens 57% → volatility rises 218%*), a metric table with per-metric direction-consistency (7/8, 8/8…), trade-offs, and a High/Moderate/Low confidence.
+- A persisted **decision journal** logs every experiment. Answers the four decision questions — *what's happening · why · what if I intervene · should I do it.*
+
 **Multi-asset & interaction**
 - **4 independent instruments** (index / large-cap / small-cap / ETF), each its own book; a live watchlist + symbol switcher. Character differs — the thin small-cap runs ~15× the index's volatility.
 - **Manual order ticket** — fire your own order into the live book, see filled qty, average price, and **slippage vs the pre-trade mid** (market impact, made tangible), and watch your queue position.
@@ -87,8 +92,11 @@ It's a **research/teaching simulator**, not a source of alpha and not calibrated
 **Microstructure depth (matching-engine / market-making signal):**
 > Modelled per-order latency with latency-ordered arrival and a queue-position primitive (lots-ahead / rank at a price level), and visualised order-book liquidity as a real-time Bookmap-style heatmap — demonstrating how latency wins queue priority and how queue position drives fill probability and adverse selection.
 
+**Decision intelligence (strongest differentiator):**
+> Built a "Scenario Lab" that forks the simulated market into control and treatment timelines from an identical seed, applies an intervention (e.g. withdrawing liquidity), and runs a controlled A/B experiment across 8 seeds to produce a decision report — verdict, causal chain, per-metric direction-consistency, and a confidence measure — turning a market simulator into a tool for answering "what happens if I do X, and should I?"
+
 **Full-stack / product:**
-> Shipped an interactive, brutal-black trading console (Next.js, custom-canvas depth-map + candlestick rendering) running the matching engine live in the browser — manual order ticket with slippage, live trader-mix editor with flash-crash/liquidity-crisis scenarios, and multi-asset support — deployed backend-free on Vercel.
+> Shipped an interactive, brutal-black trading console (Next.js, custom-canvas depth-map + candlestick rendering) running the matching engine live in the browser — manual order ticket with slippage, live trader-mix editor with flash-crash/liquidity-crisis scenarios, multi-asset support, and a decision-intelligence Scenario Lab — deployed backend-free on Vercel.
 
 *ATS keywords: order book, matching engine, price-time priority, market microstructure, queue position, latency, bid-ask spread, market impact, liquidity, order imbalance, VWAP, limit/market/stop orders, IOC/FOK, market making, Python, TypeScript, Next.js.*
 

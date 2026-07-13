@@ -1,7 +1,7 @@
 # Project Agora
 
-**A first-principles electronic exchange & market-microstructure simulator.**
-Not a trading bot and not a price predictor — a working model of the machinery *inside* an exchange: a limit order book, a price-time-priority matching engine, a population of simulated traders, and an analytics layer. Prices are never set; they **emerge** from order flow.
+**A decision-intelligence system for market microstructure.**
+Not a trading bot and not a price predictor — a working model of the machinery *inside* an exchange (a limit order book, a price-time-priority matching engine, a population of simulated traders, an analytics layer) wrapped in a tool that answers **"what happens if I do X?" before you commit to X.** Prices are never set; they **emerge** from order flow — and you can *fork the market*, intervene on one branch, and get a decision report telling you what changed, why, and whether to do it.
 
 ### ▶ Live console — **https://console-ecru-omega.vercel.app**
 
@@ -27,6 +27,7 @@ Most "quant" student projects predict prices. This one asks a more fundamental q
 - **Queue position & latency:** every order carries a latency (fast market makers reach the book first); orders arrive in latency order, and the console shows **exactly where your resting order sits in the FIFO queue** — lots ahead, yours, behind — the quantity that actually governs fill probability and adverse selection.
 - **Multi-asset:** four independent instruments (index, large-cap, small-cap, ETF), each with its own book — a small-cap is genuinely ~15× more volatile than the index.
 - **Interactive console:** send your own orders and see the slippage, watch your queue position, edit the trader mix live, trigger scenario presets (Calm / Flash Crash / Liquidity Crisis).
+- **Scenario Lab (decision intelligence):** *fork the market* — build a control and a treatment timeline from an identical seed, apply one intervention to the treatment (pull the market makers, inject a 400-lot sweep, unleash a momentum crowd…), run both forward across 8 seeds, and get a **decision report**: verdict, a causal chain (*makers removed → spread widens 57% → volatility rises 218%*), a measured-effect table with per-metric consistency, trade-offs, and a confidence grounded in how often the direction held. Answers all four decision questions — *what's happening · why · what if I intervene · should I* — with a persisted decision journal.
 
 ## Performance
 
