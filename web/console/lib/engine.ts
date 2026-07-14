@@ -154,6 +154,23 @@ export class MatchingEngine {
   step = 0;
   onTrade?: (t: Trade) => void;
 
+  // --- order-lifecycle KPIs (for the execution log + KPI board) ---------
+  stats = {
+    submitted: 0,       // orders received
+    submittedVolume: 0, // total lots requested
+    fullyFilled: 0,
+    partiallyFilled: 0,
+    restedNoFill: 0,    // limit orders that rested with zero fill
+    unfilled: 0,        // market/IOC/FOK that found no liquidity
+    cancelled: 0,
+    matchedVolume: 0,   // lots that actually traded
+  };
+  fillRate(): number {
+    return this.stats.submittedVolume
+      ? this.stats.matchedVolume / this.stats.submittedVolume
+      : 0;
+  }
+
   nextId() {
     return ++this.idSeq;
   }
@@ -186,11 +203,30 @@ export class MatchingEngine {
   submit(o: Order): Trade[] {
     o.seq = ++this.orderSeq;
     if (o.originalQuantity === 0) o.originalQuantity = o.quantity;
-    return this.match(o);
+    const wantsRest = o.type === "LIMIT" && o.tif === "GTC";
+    this.stats.submitted++;
+    this.stats.submittedVolume += o.originalQuantity;
+
+    const trades = this.match(o);
+
+    const filled = o.originalQuantity - o.quantity;
+    this.stats.matchedVolume += filled;
+    if (o.quantity === 0) {
+      this.stats.fullyFilled++;
+    } else if (filled > 0) {
+      this.stats.partiallyFilled++;
+    } else if (wantsRest && this.queuePosition(o.id) !== null) {
+      this.stats.restedNoFill++;
+    } else {
+      this.stats.unfilled++;
+    }
+    return trades;
   }
 
   cancel(id: number): boolean {
-    return this.bids.remove(id) || this.asks.remove(id);
+    const ok = this.bids.remove(id) || this.asks.remove(id);
+    if (ok) this.stats.cancelled++;
+    return ok;
   }
 
   private crosses(o: Order, restingPrice: number): boolean {

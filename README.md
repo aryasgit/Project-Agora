@@ -23,7 +23,7 @@ Most "quant" student projects predict prices. This one asks a more fundamental q
 - **Matching engine** enforcing **price-time priority** — full & partial fills, order cancel, cancel-replace modify, and stop / stop-limit triggers with cascading.
 - **Order types:** market, limit, stop, stop-limit · **time-in-force:** GTC, IOC, FOK.
 - **Simulated traders:** market maker (with inventory skew), momentum, mean-reversion, noise, aggressive institutional, passive — the market self-organises from their interaction.
-- **Analytics:** VWAP, bid-ask spread, order imbalance, realized volatility, market depth, trade frequency.
+- **Analytics & telemetry:** a KPI board (orders processed, fill rate, matched volume, trades, VWAP, spread, volatility, order imbalance) and an execution log with a live order-flow tally (filled / partial / resting / cancelled). Watchable pacing (0.25× / 0.5× / 1×) so you can see orders match, not just a blur.
 - **Queue position & latency:** every order carries a latency (fast market makers reach the book first); orders arrive in latency order, and the console shows **exactly where your resting order sits in the FIFO queue** — lots ahead, yours, behind — the quantity that actually governs fill probability and adverse selection.
 - **Multi-asset:** four independent instruments (index, large-cap, small-cap, ETF), each with its own book — a small-cap is genuinely ~15× more volatile than the index.
 - **Interactive console:** send your own orders and see the slippage, watch your queue position, edit the trader mix live, trigger scenario presets (Calm / Flash Crash / Liquidity Crisis).

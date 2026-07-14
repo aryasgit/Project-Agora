@@ -58,6 +58,7 @@ vault/            Obsidian knowledge base — concepts, ADRs, glossary, mileston
 
 **Multi-asset & interaction**
 - **4 independent instruments** (index / large-cap / small-cap / ETF), each its own book; a live watchlist + symbol switcher. Character differs — the thin small-cap runs ~15× the index's volatility.
+- **Watchable pacing & execution telemetry** — slow speeds (0.25× / 0.5× / 1×) so you can *see* orders match; a **KPI board** (orders processed, fill rate, matched volume, trades, VWAP, spread, volatility) and an **execution log** with a live order-flow tally (filled / partial / resting / cancelled) — the diagnostic layer, not just spectacle.
 - **Manual order ticket** — fire your own order into the live book, see filled qty, average price, and **slippage vs the pre-trade mid** (market impact, made tangible), and watch your queue position.
 - **Live trader-mix editor** + scenario presets (**Calm / Flash Crash / Liquidity Crisis**) that reshape the running market with no reset.
 - Keyboard shortcuts, URL-shareable reproducible seeds, responsive layout, collapsible instrument panel.

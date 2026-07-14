@@ -15,10 +15,12 @@ const TICK = 0.01;
 const fmt = (t: number | null) => (t === null ? "—" : (t * TICK).toFixed(2));
 const pctFmt = (p: number | null) => (p === null ? "—" : `${p >= 0 ? "+" : ""}${(p * 100).toFixed(2)}%`);
 
+// Slow, watchable speeds — the point is to SEE orders match, not to strobe.
+// rate = simulation steps per real second.
 const SPEEDS = [
-  { label: "1×", steps: 1 },
-  { label: "4×", steps: 4 },
-  { label: "16×", steps: 16 },
+  { label: "0.25×", rate: 1.5 },
+  { label: "0.5×", rate: 3 },
+  { label: "1×", rate: 6 },
 ];
 
 function readSeed(): number {
@@ -32,7 +34,7 @@ export default function Console() {
   const worldRef = useRef<World>(new World(42));
   const [, force] = useState(0);
   const [running, setRunning] = useState(true);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(2); // default 1× (slow/watchable)
   const [selected, setSelected] = useState(0);
   const [railOpen, setRailOpen] = useState(true);
   const [myOrderSide, setMyOrderSide] = useState<Side | null>(null);
@@ -41,6 +43,8 @@ export default function Console() {
   const [labOpen, setLabOpen] = useState(false);
   const raf = useRef<number | null>(null);
   const prevPrice = useRef<number | null>(null);
+  const acc = useRef(0);
+  const lastTs = useRef<number | null>(null);
 
   useEffect(() => {
     const s = readSeed();
@@ -51,14 +55,33 @@ export default function Console() {
     }
   }, []);
 
-  const tick = useCallback(() => {
-    worldRef.current.step(SPEEDS[speed].steps);
-    force((x) => x + 1);
-    raf.current = requestAnimationFrame(tick);
-  }, [speed]);
+  // Time-accumulator loop: advance `rate` steps per real second, independent
+  // of frame rate. At 0.25× that's ~1.5 steps/sec — slow enough to watch each
+  // wave of orders hit the book and match.
+  const tick = useCallback(
+    (ts: number) => {
+      if (lastTs.current === null) lastTs.current = ts;
+      const dt = (ts - lastTs.current) / 1000;
+      lastTs.current = ts;
+      acc.current += dt * SPEEDS[speed].rate;
+      let ran = 0;
+      while (acc.current >= 1 && ran < 40) {
+        worldRef.current.step(1);
+        acc.current -= 1;
+        ran++;
+      }
+      if (ran > 0) force((x) => x + 1);
+      raf.current = requestAnimationFrame(tick);
+    },
+    [speed]
+  );
 
   useEffect(() => {
-    if (running) raf.current = requestAnimationFrame(tick);
+    if (running) {
+      lastTs.current = null;
+      acc.current = 0;
+      raf.current = requestAnimationFrame(tick);
+    }
     return () => {
       if (raf.current) cancelAnimationFrame(raf.current);
     };
@@ -121,6 +144,8 @@ export default function Console() {
   };
 
   const s: Summary = sim.summary();
+  const st = sim.eng.stats;
+  const fillRate = sim.eng.fillRate();
   const depth = sim.depthCumulative(11);
   const trades = sim.recentTrades(30);
   const last = s.lastPrice;
@@ -261,7 +286,23 @@ export default function Console() {
           </div>
 
           <div className="panel tape-panel">
-            <div className="panel-title">Time &amp; Sales</div>
+            <div className="panel-title">
+              <span>Execution Log</span>
+              <span className="col-key">px · size · side</span>
+            </div>
+            {/* order-flow summary — the completion tally */}
+            <div className="oflow">
+              <OFlow label="Filled" v={st.fullyFilled} cls="up" />
+              <OFlow label="Partial" v={st.partiallyFilled} />
+              <OFlow label="Resting" v={st.restedNoFill} />
+              <OFlow label="Cancel" v={st.cancelled} cls="down" />
+            </div>
+            <div className="log-head">
+              <span>PRICE</span>
+              <span>SIZE</span>
+              <span>SIDE</span>
+              <span>SEQ</span>
+            </div>
             <div className="tape">
               {trades.map((t: Trade) => (
                 <div
@@ -272,6 +313,7 @@ export default function Console() {
                 >
                   <span className="tprice">{fmt(t.price)}</span>
                   <span className="tqty">{t.quantity}</span>
+                  <span className="tside">{t.aggressor === "BUY" ? "BUY" : "SELL"}</span>
                   <span className="ttime">#{t.seq}</span>
                 </div>
               ))}
@@ -279,20 +321,22 @@ export default function Console() {
           </div>
 
           <div className="panel stats-panel">
-            <div className="panel-title">Analytics</div>
-            <div className="stats">
-              <Stat label="VWAP" value={fmt(s.vwap === null ? null : Math.round(s.vwap))} />
-              <Stat label="Volume" value={s.totalVolume.toLocaleString()} />
-              <Stat label="Trades" value={s.tradeCount.toLocaleString()} />
-              <Stat
-                label="Avg Spread"
-                value={s.averageSpread === null ? "—" : (s.averageSpread * TICK).toFixed(3)}
+            <div className="panel-title">Key Metrics</div>
+            <div className="kpis">
+              <Kpi label="Last" value={fmt(last)} cls={dir > 0 ? "up" : dir < 0 ? "down" : ""} />
+              <Kpi label="VWAP" value={fmt(s.vwap === null ? null : Math.round(s.vwap))} />
+              <Kpi
+                label="Spread"
+                value={s.currentSpread === null ? "—" : (s.currentSpread * TICK).toFixed(2)}
               />
-              <Stat
+              <Kpi
                 label="Volatility"
                 value={s.volatility === null ? "—" : (s.volatility * 1e4).toFixed(1) + "bp"}
               />
-              <Stat label="Step" value={sim.eng.step.toLocaleString()} />
+              <Kpi label="Orders" value={st.submitted.toLocaleString()} sub="processed" />
+              <Kpi label="Fill Rate" value={(fillRate * 100).toFixed(1) + "%"} sub="vol matched" />
+              <Kpi label="Matched" value={st.matchedVolume.toLocaleString()} sub="lots" />
+              <Kpi label="Trades" value={s.tradeCount.toLocaleString()} sub="prints" />
             </div>
             <div className="sparks">
               <div className="spark-tile">
@@ -376,6 +420,25 @@ function Stat({ label, value, cls = "" }: { label: string; value: string; cls?: 
     <div className="stat">
       <span className="label">{label}</span>
       <span className={`value ${cls}`}>{value}</span>
+    </div>
+  );
+}
+
+function Kpi({ label, value, sub, cls = "" }: { label: string; value: string; sub?: string; cls?: string }) {
+  return (
+    <div className="kpi">
+      <span className="kpi-label">{label}</span>
+      <span className={`kpi-value ${cls}`}>{value}</span>
+      {sub && <span className="kpi-sub">{sub}</span>}
+    </div>
+  );
+}
+
+function OFlow({ label, v, cls = "" }: { label: string; v: number; cls?: string }) {
+  return (
+    <div className="of-cell">
+      <span className={`of-num ${cls}`}>{v.toLocaleString()}</span>
+      <span className="of-label">{label}</span>
     </div>
   );
 }

@@ -318,7 +318,51 @@ canvas {
   border-bottom: 1px solid var(--hair);
 }
 
-/* trade tape */
+/* order-flow summary (execution completion tally) */
+.oflow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--hair);
+  border-bottom: 1px solid var(--hair);
+  flex: 0 0 auto;
+}
+.of-cell {
+  background: var(--bg);
+  padding: 7px 8px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  align-items: center;
+}
+.of-num {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.of-label {
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* execution log header */
+.log-head {
+  display: grid;
+  grid-template-columns: 1fr 52px 44px 52px;
+  padding: 5px 12px;
+  font-size: 8.5px;
+  letter-spacing: 1px;
+  color: #4a4a52;
+  border-bottom: 1px solid var(--hair);
+  flex: 0 0 auto;
+}
+.log-head span:not(:first-child) {
+  text-align: right;
+}
+
+/* execution log / tape */
 .tape {
   overflow-y: auto;
   flex: 1;
@@ -326,7 +370,7 @@ canvas {
 }
 .tape-row {
   display: grid;
-  grid-template-columns: 1fr 70px 70px;
+  grid-template-columns: 1fr 52px 44px 52px;
   padding: 2px 12px;
   font-size: 12px;
 }
@@ -334,9 +378,20 @@ canvas {
   text-align: left;
 }
 .tape-row .tqty,
+.tape-row .tside,
 .tape-row .ttime {
   text-align: right;
   color: var(--muted);
+}
+.tape-row .tside {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+.buy .tside {
+  color: var(--green-bright);
+}
+.sell .tside {
+  color: var(--red-bright);
 }
 .buy .tprice {
   color: var(--green-bright);
@@ -352,6 +407,40 @@ canvas {
   gap: 1px;
   background: var(--hair);
   flex: 0 0 auto;
+}
+
+/* KPI board — prominent, CV-grade metrics */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--hair);
+  flex: 0 0 auto;
+}
+.kpi {
+  background: var(--bg);
+  padding: 9px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.kpi-label {
+  font-size: 8.5px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.kpi-value {
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.kpi-sub {
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #45454d;
 }
 .stat {
   background: var(--panel);
